@@ -1,23 +1,4 @@
-# Environment variables
 .env
+architecture-diagram
+failover-sequence-diagram
 
-# Docker
-docker-compose.override.yml
-
-# Logs
-*.log
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# Temporary files
-*.tmp
-tmp/
