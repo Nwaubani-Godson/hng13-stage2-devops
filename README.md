@@ -26,8 +26,8 @@ The setup includes:
 
 ### 1. Clone the Repository
 ```bash
-git clone <your-repo-url>
-cd <your-repo-name>
+git clone https://github.com/Nwaubani-Godson/hng13-stage2-devops
+cd hng13-stage2-devops
 ```
 
 ### 2. Set Up Environment Variables
@@ -35,7 +35,7 @@ cd <your-repo-name>
 # Copy the example .env file
 cp .env.example .env
 
-# Edit .env if needed (defaults should work for testing)
+# Edit .env if needed (defaults works for testing)
 nano .env
 ```
 
