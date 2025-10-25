@@ -1,0 +1,29 @@
+graph TB
+    Client[Client Requests]
+    Nginx[Nginx Reverse Proxy<br/>localhost:8080]
+    Blue[Blue Service<br/>app_blue:3000<br/>localhost:8081]
+    Green[Green Service<br/>app_green:3000<br/>localhost:8082]
+    
+    Client -->|HTTP Request| Nginx
+    Nginx -->|Primary<br/>max_fails=1<br/>fail_timeout=5s| Blue
+    Nginx -.->|Backup<br/>Only when Blue fails| Green
+    
+    Blue -->|200 OK<br/>X-App-Pool: blue<br/>X-Release-Id: blue-v1.0.0| Nginx
+    Green -.->|200 OK<br/>X-App-Pool: green<br/>X-Release-Id: green-v1.0.0| Nginx
+    
+    Nginx -->|Response with headers| Client
+    
+    Chaos[Chaos Endpoint<br/>POST /chaos/start]
+    Chaos -->|Direct access| Blue
+    
+    style Nginx fill:#4A90E2,stroke:#2E5C8A,color:#fff
+    style Blue fill:#5CB3FF,stroke:#3A7BC8,color:#fff
+    style Green fill:#90EE90,stroke:#2E8B57,color:#000
+    style Client fill:#FFD700,stroke:#B8860B,color:#000
+    style Chaos fill:#FF6B6B,stroke:#C92A2A,color:#fff
+    
+    classDef primary stroke-width:3px
+    classDef backup stroke-dasharray: 5 5
+    
+    class Blue primary
+    class Green backup

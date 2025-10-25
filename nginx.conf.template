@@ -1,0 +1,52 @@
+events {
+    worker_connections 1024;
+}
+
+http {
+    # Upstream configuration for Blue/Green deployment
+    upstream backend {
+        # Active pool determined by ACTIVE_POOL env var
+        # Primary server - will be replaced by envsubst
+        server app_${ACTIVE_POOL}:3000 max_fails=1 fail_timeout=5s;
+        
+        # Backup server - will be replaced by envsubst  
+        server app_${BACKUP_POOL}:3000 backup;
+    }
+
+    server {
+        listen 80;
+        server_name localhost;
+
+        # Proxy settings to forward headers and handle failover
+        location / {
+            # Failover configuration - retry on errors, timeouts, and 5xx
+            proxy_next_upstream error timeout http_500 http_502 http_503 http_504;
+            proxy_next_upstream_tries 2;
+            proxy_next_upstream_timeout 10s;
+
+            # Tight timeouts for quick failure detection
+            proxy_connect_timeout 2s;
+            proxy_send_timeout 3s;
+            proxy_read_timeout 3s;
+
+            # Forward original client information
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+
+            # Pass to upstream
+            proxy_pass http://backend;
+
+            # Preserve upstream response headers (don't strip app headers)
+            proxy_pass_request_headers on;
+        }
+
+        # Health check endpoint for Nginx itself
+        location /nginx-health {
+            access_log off;
+            return 200 "healthy\n";
+            add_header Content-Type text/plain;
+        }
+    }
+}

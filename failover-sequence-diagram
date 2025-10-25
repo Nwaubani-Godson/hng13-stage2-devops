@@ -1,0 +1,53 @@
+sequenceDiagram
+    participant C as Client
+    participant N as Nginx
+    participant B as Blue Service
+    participant G as Green Service
+    participant Grader as Grader/Chaos
+    
+    Note over C,G: Normal State - Blue Active
+    
+    C->>N: GET /version
+    N->>B: Forward request
+    B->>N: 200 OK<br/>X-App-Pool: blue<br/>X-Release-Id: blue-v1.0.0
+    N->>C: 200 OK (Blue headers)
+    
+    Note over C,G: Chaos Induced on Blue
+    
+    Grader->>B: POST /chaos/start?mode=error
+    B->>Grader: 200 OK (Chaos started)
+    
+    Note over B: Blue now returns 500 errors
+    
+    C->>N: GET /version
+    N->>B: Forward request
+    B--xN: 500 Internal Server Error<br/>(timeout or error)
+    
+    Note over N: Nginx detects failure<br/>max_fails=1 reached<br/>Marks Blue as down
+    
+    N->>G: Retry to Green (backup)
+    G->>N: 200 OK<br/>X-App-Pool: green<br/>X-Release-Id: green-v1.0.0
+    N->>C: 200 OK (Green headers)
+    
+    Note over C: Client sees 200!<br/>No 5xx error exposed
+    
+    Note over C,G: Subsequent Requests - Green Active
+    
+    loop Next 10 requests
+        C->>N: GET /version
+        N->>G: Forward to Green (backup active)
+        G->>N: 200 OK (Green)
+        N->>C: 200 OK (Green headers)
+    end
+    
+    Note over C,G: Chaos Stopped - Recovery
+    
+    Grader->>B: POST /chaos/stop
+    B->>Grader: 200 OK (Chaos stopped)
+    
+    Note over B: Blue healthy again<br/>After fail_timeout (5s)<br/>Blue becomes available
+    
+    C->>N: GET /version
+    N->>B: Try Blue again
+    B->>N: 200 OK (Blue recovered)
+    N->>C: 200 OK (Blue headers)
