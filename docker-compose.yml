@@ -50,6 +50,7 @@ services:
     volumes:
       - ./nginx.conf.template:/etc/nginx/nginx.conf.template:ro
       - ./entrypoint.sh:/entrypoint.sh:ro
+      - nginx_logs:/var/log/nginx
     networks:
       - app_network
     depends_on:
@@ -57,6 +58,29 @@ services:
       - app_green
     command: ["/entrypoint.sh"]
 
+  # Log watcher for monitoring and alerts
+  alert_watcher:
+    build:
+      context: .
+      dockerfile: Dockerfile.watcher
+    container_name: alert_watcher
+    environment:
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}
+      - ERROR_RATE_THRESHOLD=${ERROR_RATE_THRESHOLD:-2.0}
+      - WINDOW_SIZE=${WINDOW_SIZE:-200}
+      - ALERT_COOLDOWN_SEC=${ALERT_COOLDOWN_SEC:-300}
+    volumes:
+      - nginx_logs:/var/log/nginx:ro
+    networks:
+      - app_network
+    depends_on:
+      - nginx
+    restart: unless-stopped
+
+
 networks:
   app_network:
     driver: bridge
+
+volumes:
+  nginx_logs:
